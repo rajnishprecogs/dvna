@@ -6,34 +6,40 @@ var libxmljs = require("libxmljs");
 var serialize = require("node-serialize")
 const Op = db.Sequelize.Op
 
-module.exports.userSearch = function (req, res) {
-	var query = "SELECT name,id FROM Users WHERE login='" + req.body.login + "'";
-	db.sequelize.query(query, {
-		model: db.User
-	}).then(user => {
-		if (user.length) {
-			var output = {
-				user: {
-					name: user[0].name,
-					id: user[0].id
-				}
-			}
-			res.render('app/usersearch', {
-				output: output
-			})
-		} else {
-			req.flash('warning', 'User not found')
-			res.render('app/usersearch', {
-				output: null
-			})
-		}
-	}).catch(err => {
-		req.flash('danger', 'Internal Error')
-		res.render('app/usersearch', {
-			output: null
-		})
-	})
+function (req, res) {
+    // FIX: Use parameterized queries to prevent SQL injection
+    const login = req.body.login;
+    db.sequelize.query(
+        "SELECT name, id FROM Users WHERE login = :login", // Use named parameter
+        {
+            replacements: { login: login },
+            model: db.User
+        }
+    ).then(user => {
+        if (user.length) {
+            var output = {
+                user: {
+                    name: user[0].name,
+                    id: user[0].id
+                }
+            }
+            res.render('app/usersearch', {
+                output: output
+            })
+        } else {
+            req.flash('warning', 'User not found')
+            res.render('app/usersearch', {
+                output: null
+            })
+        }
+    }).catch(err => {
+        req.flash('danger', 'Internal Error')
+        res.render('app/usersearch', {
+            output: null
+        })
+    })
 }
+// This fix uses Sequelize's parameterized query feature (the :login placeholder and replacements object) to ensure user input is safely escaped and cannot alter the query structure, fully mitigating SQL injection risks.
 
 module.exports.ping = function (req, res) {
 	exec('ping -c 2 ' + req.body.address, function (err, stdout, stderr) {
